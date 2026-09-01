@@ -1,143 +1,67 @@
-# LedgerMatch — Automated Reconciliation & Break Explainer
 
-Matches transaction records across two inconsistent ledgers (e.g. a bank's
-internal ledger vs. an external switch/card-network feed) using entity
-resolution, and explains — in plain English — why the leftovers ("breaks")
-didn't match.
+# LedgerMatch: Automated Reconciliation & Break Explainer
+LedgerMatch is a machine learning system designed to reconcile transaction records across inconsistent ledgers—such as a company's internal database and an external bank feed. Traditional exact-match reconciliation software fails frequently on messy, real-world data like timestamp jitter, OCR errors, or truncated names. LedgerMatch replaces these rigid rules with a probabilistic entity-resolution pipeline to link corresponding records despite the noise.
 
-## Why this problem
+When transactions genuinely have no counterpart, they are flagged as unmatched "breaks". The system routes these breaks to an automated, tool-calling AI agent that runs diagnostic checks (e.g., looking for duplicate references, fee deductions, or settlement delays) and generates a plain-English explanation of the root cause. This eliminates the need for operations analysts to manually cross-reference spreadsheets.
 
-Reconciliation is unglamorous but genuinely high-stakes: unmatched breaks
-between an internal ledger and an external system tie up capital and
-trigger audit findings, and are normally resolved by analysts manually
-comparing spreadsheets. Exact-match rules fail constantly on real-world
-messiness — timestamp jitter, rounding, truncated names, settlement
-delays, duplicates — which is why record linkage / entity resolution is a
-named ML subfield in its own right.
 
-## Architecture
+## Core Features
+* **Probabilistic Matching:** Uses a Gradient Boosting Classifier and lightweight character n-gram TF-IDF embeddings to link records based on amount deltas, time delays, and text similarity.
+* **AI Break Investigator:** An agent that runs independent diagnostic tools to analyze unmatched records[cite: 1]. It functions entirely offline via deterministic rules, or optionally through a live Anthropic Claude AI integration.
+* **Synthetic Data Generator:** Ships with a built-in simulator to generate clean, noisy, or system-migration data scenarios without requiring private financial data.
+* **Interactive Dashboard:** A fully functional Streamlit frontend for visual reconciliation, confidence-threshold adjustment, and break investigation.
+* **Production-Ready API:** A FastAPI microservice exposing the exact same matching logic for real-world system integration.
 
-```
-Raw ledgers (internal, external)
-        │
-        ▼
-Blocking (src/features.py)          -- restrict comparisons to same-day ± amount tolerance
-        │
-        ▼
-Feature engineering                  -- amount delta, time delta, string similarity
-                                         (rapidfuzz) + character n-gram TF-IDF cosine
-                                         similarity (a lightweight, fully offline text
-                                         "embedding" — no external model download needed)
-        │
-        ▼
-Pairwise classifier (src/train.py)   -- GradientBoostingClassifier vs. a
-                                         LogisticRegression baseline
-        │
-        ▼
-SHAP explainability                  -- global + per-pair feature importance
-        │
-        ▼
-Break investigator (src/agent.py)    -- tool-calling agent: runs independent
-                                         "tools" (near-amount check, timing-delay
-                                         check, duplicate-reference check, fuzzy-name
-                                         check) against every unmatched record and
-                                         narrates a root-cause hypothesis. Uses a live
-                                         Claude call if ANTHROPIC_API_KEY is set,
-                                         otherwise a deterministic offline fallback.
-        │
-        ▼
-FastAPI service (api/main.py)  <──┐
-Streamlit demo (app/streamlit_app.py) ── both call the identical
-                                         src/reconcile.py logic, so the
-                                         demo and the "production" service
-                                         are provably consistent.
-```
+## Getting Started
 
-## Real, honest evaluation
+### Prerequisites
+Ensure you have Python 3.11+ installed.
 
-Because `generate_data.py` produces both ledgers from one true source, we
-keep the ground-truth mapping (`data/ground_truth.csv`) and can report real
-precision/recall on the matching task — not a hand-wavy accuracy number.
-Example run (`noisy` scenario, n=800):
+### Installation
+1. Clone the repository and navigate to the project folder:
+   ```bash
+   git clone [https://github.com/YOUR_USERNAME/ledgermatch.git](https://github.com/YOUR_USERNAME/ledgermatch.git)
+   cd ledgermatch
+
+
+
+2. Create a virtual environment and install dependencies:
+```bash
+    python -m venv venv
+    source venv/bin/activate  # On Windows use: venv\Scripts\activate
+    pip install -r requirements.txt
 
 ```
-GBM   precision=0.934  recall=1.000  f1=0.966  roc_auc=0.999
-LogReg precision=0.907  recall=1.000  f1=0.951   (baseline)
-```
 
-SHAP global feature importance on that run: `text_cos_sim` (0.46) >
-`ref_ratio` (0.26) > `time_diff_sec` (0.18) > amount/name features — i.e.
-the character-level text similarity carries most of the discriminative
-signal, which matches intuition (amount and blocking already narrow
-candidates heavily before the classifier sees them).
 
-## Setup
+
+### Running the Application
+
+Launch the interactive web dashboard to explore the data and run investigations. The app will automatically generate the test data and train the AI model on its first run:
 
 ```bash
-pip install -r requirements.txt
-
-# 1. Generate a synthetic dual-ledger dataset
-python generate_data.py --scenario noisy --n 800
-
-# 2. Train the pairwise matcher (prints precision/recall/F1/ROC-AUC + SHAP importance)
-python -m src.train --scenario noisy --n 800
-
-# 3a. Run the interactive demo (auto-bootstraps data/model on first run)
 streamlit run app/streamlit_app.py
 
-# 3b. OR run the FastAPI microservice
+```
+
+*(Optional)* Start the backend FastAPI microservice to access the system programmatically:
+
+```bash
 uvicorn api.main:app --reload --port 8000
-```
-
-### Scenarios
-
-| Scenario    | What it simulates                                   |
-|-------------|------------------------------------------------------|
-| `clean`     | Low noise — a well-behaved day                       |
-| `noisy`     | Realistic everyday noise (default)                   |
-| `migration` | A system migration / format change — heavy noise, tests drift monitoring |
-
-### Optional: live LLM narration
-
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-```
-If set, `src/agent.py` calls Claude to write the break explanation instead
-of the deterministic template. Entirely optional — the project runs free
-and offline without it.
-
-## Docker
-
-```bash
-docker build -t ledgermatch .
-docker run -p 8000:8000 ledgermatch
-```
-
-## Deploying the demo for free
-
-Push this repo to GitHub, then deploy `app/streamlit_app.py` on
-[Streamlit Community Cloud](https://streamlit.io/cloud) — zero hosting
-cost. The app bootstraps its own data and model on first run, so no
-external database or pre-trained model upload is required.
-
-## Project structure
 
 ```
-ledgermatch/
-├── README.md
-├── requirements.txt
-├── Dockerfile
-├── generate_data.py       # synthetic dual-ledger generator (3 noise scenarios)
-├── data/                  # generated at runtime: internal/external ledgers + ground truth
-├── models/                # generated at runtime: trained matcher + vectorizer + metrics
-├── src/
-│   ├── __init__.py
-│   ├── features.py        # blocking + pairwise feature engineering
-│   ├── train.py            # trains + evaluates the matcher, computes SHAP importance
-│   ├── reconcile.py        # shared matching logic used by API and Streamlit
-│   └── agent.py             # tool-calling break-investigation agent
-├── api/
-│   └── main.py              # FastAPI microservice
-└── app/
-    └── streamlit_app.py     # interactive Streamlit demo
-```
+
+## Repository Structure
+
+* `app/` - Streamlit frontend dashboard.
+
+
+* `api/` - FastAPI microservice endpoints.
+
+
+* `src/` - Core entity resolution, matching pipeline, and AI agent logic.
+
+
+* `generate_data.py` - Synthetic dual-ledger data simulator.
+
+
