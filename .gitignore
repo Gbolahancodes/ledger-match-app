@@ -1,0 +1,17 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+.env
+
+# Project-specific generated files
+data/
+models/
+
+# OS files
+.DS_Store
+Thumbs.db
