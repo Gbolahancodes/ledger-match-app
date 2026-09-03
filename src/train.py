@@ -1,16 +1,3 @@
-"""
-src/train.py
-------------
-Trains the pairwise match/no-match classifier.
-
-Because generate_data.py keeps a ground-truth mapping, we can label every
-candidate pair as a true match (1) or not (0) and get REAL precision/recall
-on held-out data -- not a hand-wavy accuracy number.
-
-Run:
-    python -m src.train --scenario noisy --n 800
-"""
-
 import argparse
 import json
 from pathlib import Path

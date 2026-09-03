@@ -1,19 +1,3 @@
-"""
-api/main.py
------------
-FastAPI microservice wrapping the same matching logic used in the Streamlit
-demo. This is the "production" integration surface -- e.g. an ops dashboard
-or a nightly batch job would call this instead of importing Python directly.
-
-Run:
-    uvicorn api.main:app --reload --port 8000
-
-Then:
-    GET  /health
-    POST /reconcile            -> runs matching over the bundled ledgers
-    POST /investigate_break    -> explains one unmatched record
-"""
-
 from pathlib import Path
 from typing import Literal
 

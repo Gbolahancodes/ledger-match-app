@@ -128,10 +128,6 @@ def investigate_break(record: pd.Series, other_ledger: pd.DataFrame,
     return {"findings": findings, "explanation": explanation}
 
 
-# ---------------------------------------------------------------------------
-# Optional live LLM narrator -- used only if ANTHROPIC_API_KEY is set.
-# Demonstrates the "agentic" story without making the API a hard dependency.
-# ---------------------------------------------------------------------------
 
 def _llm_narrate(record: pd.Series, findings: list[dict], api_key: str) -> Optional[str]:
     try:

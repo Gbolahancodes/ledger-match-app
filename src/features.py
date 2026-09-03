@@ -1,18 +1,3 @@
-"""
-src/features.py
-----------------
-Turns two raw ledgers into a set of CANDIDATE PAIRS with engineered
-similarity features. This is the core "entity resolution" logic:
-
-1. Blocking: don't compare every internal record to every external record
-   (O(n*m) is wasteful and mostly irrelevant pairs) -- only compare records
-   whose date and amount are already in the same rough neighbourhood.
-2. Feature engineering: for each surviving candidate pair, compute numeric
-   deltas (amount, time) and text-similarity signals (string similarity +
-   lightweight character n-gram "embedding" cosine similarity via TF-IDF,
-   which needs no external model download -- everything runs offline).
-"""
-
 from __future__ import annotations
 
 import numpy as np

@@ -30,8 +30,7 @@ fake = Faker('en_NG')
 DATA_DIR = Path(__file__).parent / "data"
 
 SCENARIOS = {
-    # name: (time_jitter_max_sec, amount_noise_prob, name_corrupt_prob,
-    #        ref_corrupt_prob, missing_prob, duplicate_prob, extra_unmatched_prob)
+    
     "clean":     dict(time_jitter=15,  amount_noise=0.03, name_corrupt=0.05,
                        ref_corrupt=0.02, missing=0.01, duplicate=0.01, extra=0.02),
     "noisy":     dict(time_jitter=180, amount_noise=0.15, name_corrupt=0.30,
@@ -50,13 +49,13 @@ def corrupt_name(name: str) -> str:
     choice = random.random()
     parts = name.split()
     if choice < 0.35 and len(parts) > 1:
-        return f"{parts[-1].upper()} {parts[0][0]}."          # "OKAFOR J."
+        return f"{parts[-1].upper()} {parts[0][0]}."          
     elif choice < 0.6:
-        return name.upper().replace(" ", "")                   # "JOHNOKAFOR"
+        return name.upper().replace(" ", "")                   
     elif choice < 0.8:
-        return name[: max(4, len(name) - 3)]                    # truncate
+        return name[: max(4, len(name) - 3)]                   
     else:
-        return name.replace("o", "0").replace("i", "1")         # OCR-ish noise
+        return name.replace("o", "0").replace("i", "1")         
 
 
 def corrupt_reference(ref: str) -> str:
@@ -87,16 +86,14 @@ def generate(n: int, scenario: str, seed: int = 42):
         )
         reference = random_reference()
 
-        # ---- internal side (assume this is the "cleaner" source of truth) ----
         internal_rows.append(
             dict(internal_id=f"INT-{i:06d}", name=name, amount=amount,
                  timestamp=ts, reference=reference)
         )
 
-        # ---- decide fate on the external side ----
         if random.random() < cfg["missing"]:
             truth_rows.append(dict(internal_id=f"INT-{i:06d}", external_id=None, txn_id=txn_id))
-            continue  # genuinely missing -> becomes an unmatched break
+            continue  
 
         ext_amount = amount
         if random.random() < cfg["amount_noise"]:

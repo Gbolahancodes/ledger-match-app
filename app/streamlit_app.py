@@ -1,15 +1,3 @@
-"""
-app/streamlit_app.py
----------------------
-Interactive LedgerMatch demo. Runs standalone (imports the matching logic
-directly) so it deploys for free on Streamlit Community Cloud with no
-separate backend process required -- the FastAPI service in api/main.py
-exposes the identical logic for a "real" system-integration story.
-
-Run:
-    streamlit run app/streamlit_app.py
-"""
-
 import sys
 from pathlib import Path
 
@@ -25,10 +13,8 @@ from src.train import train
 from src.reconcile import load_model, run_reconciliation
 from src.agent import investigate_break
 
-# Force the sidebar to start expanded so it isn't lost on load
 st.set_page_config(page_title="LedgerMatch", layout="wide", initial_sidebar_state="expanded")
 
-# Upgraded UI CSS: Restores the sidebar toggle, hides Streamlit watermarks, and sharpens tabs
 st.markdown("""
     <style>
     /* Tighten top padding */
@@ -59,10 +45,6 @@ DATA_DIR = ROOT / "data"
 MODEL_DIR = ROOT / "models"
 
 
-# ---------------------------------------------------------------------------
-# Sidebar controls
-# ---------------------------------------------------------------------------
-
 st.sidebar.header("Scenario Configuration")
 scenario = st.sidebar.radio(
     "Test Environment Data",
@@ -89,9 +71,6 @@ threshold = st.sidebar.slider(
     help="Higher = fewer, more confident matches (higher precision). Lower = catches more edge cases (higher recall)."
 )
 
-# ---------------------------------------------------------------------------
-# Load data + model (auto-bootstrap on first run)
-# ---------------------------------------------------------------------------
 
 if not (DATA_DIR / "internal_ledger.csv").exists():
     with st.spinner("System Bootstrap: Generating synthetic ledgers..."):
@@ -109,9 +88,6 @@ matches, unmatched_internal, unmatched_external = run_reconciliation(
     internal, external, model, vectorizer, threshold=threshold
 )
 
-# ---------------------------------------------------------------------------
-# Summary dashboard (Wrapped in a clean container)
-# ---------------------------------------------------------------------------
 
 with st.container(border=True):
     c1, c2, c3, c4 = st.columns(4)
@@ -120,7 +96,7 @@ with st.container(border=True):
     c3.metric("Unmatched (Internal)", len(unmatched_internal))
     c4.metric("Unmatched (External)", len(unmatched_external))
 
-st.write("") # Spacer
+st.write("") 
 
 left, right = st.columns([2, 1], gap="large")
 

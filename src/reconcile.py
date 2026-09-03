@@ -1,11 +1,3 @@
-"""
-src/reconcile.py
------------------
-Shared "run a reconciliation" logic. Both api/main.py (the FastAPI
-microservice) and app/streamlit_app.py (the live demo) call this same
-function, so the demo and the "production" service are provably consistent.
-"""
-
 from pathlib import Path
 
 import joblib
